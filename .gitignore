@@ -1,0 +1,8 @@
+#the environment file is not to be pushed to the repository
+.env
+env/
+
+#the editor configuration file is not to be pushed to the repository
+.editorconfig
+.vscode/
+
