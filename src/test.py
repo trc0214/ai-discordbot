@@ -1,60 +1,64 @@
-import os
-from dotenv import load_dotenv
-from haystack.document_stores import InMemoryDocumentStore
-from haystack.nodes import BM25Retriever
-from haystack.pipelines import Pipeline
-import google.generativeai as genai
+from haystack import Pipeline, Document
+from haystack.document_stores.types import DuplicatePolicy
+from haystack.components.writers import DocumentWriter
+from haystack.components.generators import OpenAIGenerator
+from haystack.components.builders.prompt_builder import PromptBuilder
+from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
+from haystack_integrations.document_stores.mongodb_atlas import MongoDBAtlasDocumentStore
+from haystack_integrations.components.retrievers.mongodb_atlas import MongoDBAtlasEmbeddingRetriever
 
-load_dotenv()
+# Create some example documents
+documents = [
+    Document(content="My name is Jean and I live in Paris."),
+    Document(content="My name is Mark and I live in Berlin."),
+    Document(content="My name is Giorgio and I live in Rome."),
+]
 
-class GenAICog:
-    def __init__(self):
-        self.allowed_channels = [1303271554897154069]  # Replace with your actual allowed channel IDs
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("No API_KEY found. Please set the GEMINI_API_KEY environment variable.")
-        genai.configure(api_key=api_key)
-        self.model = genai.GenerativeModel('gemini-1.5-flash')
+document_store = MongoDBAtlasDocumentStore(
+    database_name="haystack_test",
+    collection_name="test_collection",
+    vector_search_index="test_vector_search_index",
+)
 
-        # Initialize Haystack components
-        self.document_store = InMemoryDocumentStore(use_bm25=True)
-        self.retriever = BM25Retriever(document_store=self.document_store)
-        self.pipeline = Pipeline()
-        self.pipeline.add_node(component=self.retriever, name="Retriever", inputs=["Query"])
+# Define some more components
+doc_writer = DocumentWriter(document_store=document_store, policy=DuplicatePolicy.SKIP)
+doc_embedder = SentenceTransformersDocumentEmbedder(model="intfloat/e5-base-v2")
+query_embedder = SentenceTransformersTextEmbedder(model="intfloat/e5-base-v2")
 
-        # Chat history
-        self.chat_history = []
+# Pipeline that ingests document for retrieval
+indexing_pipe = Pipeline()
+indexing_pipe.add_component(instance=doc_embedder, name="doc_embedder")
+indexing_pipe.add_component(instance=doc_writer, name="doc_writer")
 
-    def add_to_chat_history(self, message, author):
-        self.chat_history.append({"content": message, "author": author})
-        self.document_store.write_documents([{"content": message, "meta": {"author": author}}])
+indexing_pipe.connect("doc_embedder.documents", "doc_writer.documents")
+indexing_pipe.run({"doc_embedder": {"documents": documents}})
 
-    def process_message(self, message):
-        # Add message to chat history
-        self.add_to_chat_history(message, "User")
+# Build a RAG pipeline with a Retriever to get documents relevant to 
+# the query, a PromptBuilder to create a custom prompt and the OpenAIGenerator (LLM)
+prompt_template = """
+Given these documents, answer the question.\nDocuments:
+{% for doc in documents %}
+    {{ doc.content }}
+{% endfor %}
 
-        # Use Haystack to search for relevant content
-        search_results = self.pipeline.run(query=message, params={"Retriever": {"top_k": 5}})
-        search_texts = [doc.content for doc in search_results["documents"]]
+\nQuestion: {{question}}
+\nAnswer:
+"""
+rag_pipeline = Pipeline()
+rag_pipeline.add_component(instance=query_embedder, name="query_embedder")
+rag_pipeline.add_component(instance=MongoDBAtlasEmbeddingRetriever(document_store=document_store), name="retriever")
+rag_pipeline.add_component(instance=PromptBuilder(template=prompt_template), name="prompt_builder")
+rag_pipeline.add_component(instance=OpenAIGenerator(), name="llm")
+rag_pipeline.connect("query_embedder", "retriever.query_embedding")
+rag_pipeline.connect("embedding_retriever", "prompt_builder.documents")
+rag_pipeline.connect("prompt_builder", "llm")
 
-        # Combine search results and user message for AI response
-        combined_input = f"User: {message}\n\nRelevant Information:\n" + "\n".join(search_texts)
-
-        # Generate AI response
-        ai_response = self.model.generate_content(combined_input).text
-
-        # Optionally, add AI response to chat history
-        self.add_to_chat_history(ai_response, "AI")
-
-        return ai_response
-
-if __name__ == "__main__":
-    cog = GenAICog()
-    print("GenAICog initialized. Type your messages below (type 'exit' to quit):")
-
-    while True:
-        user_input = input("You: ")
-        if user_input.lower() == 'exit':
-            break
-        response = cog.process_message(user_input)
-        print(f"AI: {response}")
+# Ask a question on the data you just added.
+question = "Where does Mark live?"
+result = rag_pipeline.run(
+    {
+        "query_embedder": {"text": question},
+        "prompt_builder": {"question": question},
+    }
+)
+print(result)

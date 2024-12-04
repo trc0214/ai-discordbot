@@ -108,3 +108,9 @@ class GenAICog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(GenAICog(bot))
+
+if __name__ == "__main__":
+    # test without bot
+    cog = GenAICog(None)
+    message = "Where does Mark live"
+    response = cog.process_message(message, "User")
