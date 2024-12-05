@@ -2,7 +2,6 @@ import os
 import time
 import pathlib
 import asyncio
-
 import discord
 from discord.ext import commands
 
@@ -41,7 +40,25 @@ class MyBot(commands.Bot):
 
     async def _cog_watcher(self):
         print("Watching for changes...")
-        last = time.time()
+        last_mtimes = {}
+        while True:
+            for file in self.ext_dir.rglob("*.py"):
+                if file.stem.startswith("_"):
+                    continue
+                mtime = file.stat().st_mtime
+                if file in last_mtimes:
+                    if mtime != last_mtimes[file]:
+                        print(f"Detected change in {file}, reloading...")
+                        relative_path = file.relative_to(self.ext_dir.parent)
+                        module_path = ".".join(relative_path.with_suffix("").parts)
+                        try:
+                            await self.unload_extension(module_path)
+                            await self.load_extension(module_path)
+                            print(f"Reloaded {file}")
+                        except commands.ExtensionError as e:
+                            print(f"Failed to reload {file}: {e}")
+                last_mtimes[file] = mtime
+            await asyncio.sleep(60)  # Check for changes every second
 
 # Initialize the bot with the src/cogs directory
 bot = MyBot(ext_dir="./src/cogs", command_prefix="!", intents=discord.Intents.all())
