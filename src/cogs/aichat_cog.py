@@ -36,11 +36,11 @@ class AIChatCog(commands.Cog):
         ai_response = self.model.generate_content(prompt).text
         await message.reply(ai_response)
 
-#async def setup(bot):
-    #await bot.add_cog(AIChatCog(bot))
+async def setup(bot):
+    await bot.add_cog(AIChatCog(bot))
 
+# just for testing
 if __name__ == "__main__":
-    # just for testing
     message = "Hello, AI!"
     ai_response = genai.GenerativeModel(genai_model).generate_content(message).text
     print(ai_response)
