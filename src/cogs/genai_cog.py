@@ -1,5 +1,5 @@
 import os
-import asyncio
+from dotenv import load_dotenv
 from discord.ext import commands
 import google.generativeai as genai
 from dotenv import load_dotenv
@@ -12,14 +12,16 @@ from haystack_integrations.document_stores.mongodb_atlas import MongoDBAtlasDocu
 from haystack_integrations.components.retrievers.mongodb_atlas import MongoDBAtlasEmbeddingRetriever
 
 load_dotenv()
+ai_chat_channel_id = 1314151629796151307
+api_key = os.getenv("GEMINI_API_KEY")
+model = 'gemini-1.5-flash'
+ai_theme = """talk short"""
 
 class GenAICog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
-        self.allowed_channels = [1303271554897154069]  # Replace with your actual allowed channel IDs
-        api_key = os.getenv("GEMINI_API_KEY")
-        if not api_key:
-            raise ValueError("No API_KEY found. Please set the GEMINI_API_KEY environment variable.")
+        self.bot_name = bot.user.name
+        self.allowed_channels = [ai_chat_channel_id]
         genai.configure(api_key=api_key)
         self.model = genai.GenerativeModel('gemini-1.5-flash')
 
@@ -98,13 +100,17 @@ class GenAICog(commands.Cog):
 
         if message.channel.id not in self.allowed_channels:
             return
+        
+        prompt = f"""
+            Desired format: None
+            People names: {message.author.display_name}
+            Specific topics: None
+            General themes: {ai_theme}
 
-        try:
-            response = await asyncio.to_thread(self.process_message, message.content, message.author.name)
-            await message.channel.send(response)
-        except Exception as e:
-            print(f"Error generating response: {e}")
-            await message.channel.send("Sorry, something went wrong. Please try again later.")
+            Message: {message.content}
+        """
+        ai_response = self.model.generate_content(prompt).text
+        await message.reply(ai_response)
 
 async def setup(bot):
     await bot.add_cog(GenAICog(bot))
