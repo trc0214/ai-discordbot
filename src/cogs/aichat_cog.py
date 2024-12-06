@@ -4,7 +4,7 @@ from discord.ext import commands
 import google.generativeai as genai
 
 load_dotenv()
-ai_chat_channel_id = 1303271554897154069
+ai_chat_channel_id = 1314151629796151307
 api_key = os.getenv("GEMINI_API_KEY")
 genai_model = 'gemini-1.5-flash'
 genai_theme = """talk short with a bit chaos"""
