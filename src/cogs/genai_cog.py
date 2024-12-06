@@ -4,12 +4,12 @@ from discord.ext import commands
 import google.generativeai as genai
 
 load_dotenv()
-ai_chat_channel_id = 1303271554897154069
+ai_chat_channel_id = 1314151629796151307
 api_key = os.getenv("GEMINI_API_KEY")
 genai_model = 'gemini-1.5-flash'
 genai_theme = """talk short with a bit chaos"""
 
-class AIChatCog(commands.Cog):
+class GenaiCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot_name = bot.user.name
@@ -37,7 +37,7 @@ class AIChatCog(commands.Cog):
         await message.reply(ai_response)
 
 async def setup(bot):
-    await bot.add_cog(AIChatCog(bot))
+    await bot.add_cog(GenaiCog(bot))
 
 if __name__ == "__main__":
     # just for testing
