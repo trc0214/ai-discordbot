@@ -8,7 +8,7 @@ ai_chat_channel_id = 1314151662507524127
 azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
 api_key=os.getenv("AZURE_OPENAI_API_KEY") 
 api_version="2024-02-01"
-model="gpt-35-turbo"
+model="gpt-35-turbo-16k"
 ai_theme = """talk short"""
 
 class AzureOpenAICog(commands.Cog):

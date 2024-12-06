@@ -1,0 +1,42 @@
+[build-system]
+requires = [""]
+build-backend = ""
+
+[project]
+name = "ai-chat-bot"
+dynamic = ["version"]
+description = "make a memories ai chat bot in discord"
+readme = "README.md"
+license = ""
+requires-python = ">=3.8,<3.13"
+authors = [{ name = "tim", email = "timray0214@gmail.com" }]
+keywords = [
+  "discord",
+  "genai",
+  "ai",
+  "chatbot",
+  "memories",
+]
+classifiers = [
+  "Development Status :: ",
+  "Intended Audience :: Science/Research",
+  "License :: ",
+  "Operating System :: OS Independent",
+  "Programming Language :: Python",
+  "Topic :: Scientific/Engineering :: ",
+]
+dependencies = [
+  "discord.py",
+  "python-dotenv",
+  "google-generativeai",
+  "openai",
+  "haystack-ai",
+  
+
+
+
+]
+[tool.hatch.envs.test]
+extra-dependencies = [
+  
+]

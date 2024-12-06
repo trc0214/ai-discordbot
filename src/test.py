@@ -19,7 +19,7 @@ def test():
 
     try:
         response = client.chat.completions.create(
-            model="gpt-35-turbo",  # Use a supported model
+            model="gpt-35-turbo-16k",  # Use a supported model
             messages=[
                 {"role": "system", "content": "You are a helpful assistant."},
                 {"role": "user", "content": "Does Azure OpenAI support customer managed keys?"},
