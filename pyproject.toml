@@ -31,10 +31,6 @@ dependencies = [
   "google-generativeai",
   "openai",
   "haystack-ai",
-  
-
-
-
 ]
 [tool.hatch.envs.test]
 extra-dependencies = [
