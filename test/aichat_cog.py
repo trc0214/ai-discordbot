@@ -9,7 +9,7 @@ api_key = os.getenv("GEMINI_API_KEY")
 genai_model = 'gemini-1.5-flash'
 genai_theme = """talk short with a bit chaos"""
 
-class GenaiCog(commands.Cog):
+class AIChatCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.bot_name = bot.user.name
@@ -37,10 +37,10 @@ class GenaiCog(commands.Cog):
         await message.reply(ai_response)
 
 async def setup(bot):
-    await bot.add_cog(GenaiCog(bot))
+    await bot.add_cog(AIChatCog(bot))
 
+# just for testing
 if __name__ == "__main__":
-    # just for testing
     message = "Hello, AI!"
     ai_response = genai.GenerativeModel(genai_model).generate_content(message).text
     print(ai_response)
