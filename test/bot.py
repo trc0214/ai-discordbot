@@ -9,7 +9,7 @@ from dotenv import load_dotenv
 
 load_dotenv()
 #TOKEN = os.getenv('DISCORD_TOKEN')
-TOKEN = "MTMxNTM0MjM3OTQxNDE5MjE4Mg.GCJraC.hdocI89ONICfuLPEx3enmYeya_qFyAUTFeFF1E"
+TOKEN = os.getenv("DISCORD_TOKEN_TEST")
 
 class MyBot(commands.Bot):
     _watcher: asyncio.Task
