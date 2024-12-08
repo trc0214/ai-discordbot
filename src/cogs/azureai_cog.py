@@ -29,11 +29,11 @@ class AzureOpenAICog(commands.Cog):
         prompt = [
             {
                 "role": "system",
-                "content": ai_theme
+                "content": f"{ai_theme} The bot's name is {self.bot_name}."
             },
             {
                 "role": "user",
-                "content": message.content
+                "content": f"{message.author.display_name} says: {message.content}"
             }
         ]
         
