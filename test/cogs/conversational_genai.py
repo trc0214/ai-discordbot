@@ -13,6 +13,8 @@ from haystack_integrations.components.generators.google_ai import GoogleAIGemini
 from haystack.components.converters import OutputAdapter
 from itertools import chain
 from typing import Any, List
+from haystack import component
+from haystack.core.component.types import Variadic
 
 load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
@@ -20,24 +22,8 @@ genai_model = 'gemini-1.5-flash'
 os.environ["GOOGLE_API_KEY"] = api_key
 ai_chat_channel_id = 1314151629796151307
 
-
-class ListJoiner:
-    def __init__(self, _type: Any):
-        self._type = _type
-
-    def run(self, values: List[Any]):
-        result = list(chain(*values))
-        return {"values": result}
-
-def initialize_pipeline():
-    # Initialize document and memory stores
-    document_store = InMemoryDocumentStore()
-    memory_store = InMemoryChatMessageStore()
-    memory_retriever = ChatMessageRetriever(memory_store)
-    memory_writer = ChatMessageWriter(memory_store)
-
-    # Define query rephrase template
-    query_rephrase_template = """
+# template
+query_rephrase_template = """
         Rewrite the question for search while keeping its meaning and key terms intact.
         If the conversation history is empty, DO NOT change the query.
         Use conversation history only if necessary, and avoid extending the query with your own knowledge.
@@ -51,6 +37,41 @@ def initialize_pipeline():
         User Query: {{query}}
         Rewritten Query:
     """
+system_message_template = "You are a helpful AI assistant using provided supporting documents and conversation history to assist humans"
+user_message_template = """Given the conversation history and the provided supporting documents, give a brief answer to the question.
+
+            Conversation history:
+            {% for memory in memories %}
+                {{ memory.content }}
+            {% endfor %}
+
+            Supporting documents:
+            {% for doc in documents %}
+                {{ doc.content }}
+            {% endfor %}
+
+            \nUser: {{query}}
+            \nAnswer:
+        """
+
+@component
+class ListJoiner:
+    def __init__(self, _type: Any):
+        component.set_output_types(self, values=_type)
+
+    def run(self, values: Variadic[Any]):
+        result = list(chain(*values))
+        return {"values": result}
+
+def initialize_pipeline():
+    # Initialize document and memory stores
+    document_store = InMemoryDocumentStore()
+    memory_store = InMemoryChatMessageStore()
+    memory_retriever = ChatMessageRetriever(memory_store)
+    memory_writer = ChatMessageWriter(memory_store)
+
+    # Define query rephrase template
+    query_rephrase_template = query_rephrase_template
     
     # Initialize pipeline and add components
     pipeline = Pipeline()
@@ -82,23 +103,8 @@ class ConversationalGenaiCog(commands.Cog):
         self.bot = bot
         self.allowed_channels = [ai_chat_channel_id]
         self.pipeline = initialize_pipeline()
-        self.system_message_template = "You are a helpful AI assistant using provided supporting documents and conversation history to assist humans"
-        self.user_message_template = """Given the conversation history and the provided supporting documents, give a brief answer to the question.
-            Note that supporting documents are not part of the conversation. If question can't be answered from supporting documents, say so.
-
-                Conversation history:
-                {% for memory in memories %}
-                    {{ memory.content }}
-                {% endfor %}
-
-                Supporting documents:
-                {% for doc in documents %}
-                    {{ doc.content }}
-                {% endfor %}
-
-                \nQuestion: {{query}}
-                \nAnswer:
-            """
+        self.system_message_template = system_message_template
+        self.user_message_template = user_message_template
 
     @commands.Cog.listener()
     async def on_message(self, message):
@@ -106,8 +112,9 @@ class ConversationalGenaiCog(commands.Cog):
             return
 
         question = message.content
+        user_name = message.author.display_name
         system_message = ChatMessage.from_system(self.system_message_template)
-        user_message = ChatMessage.from_user(self.user_message_template)
+        user_message = ChatMessage.from_user(self.user_message_template.replace("{% User %}", user_name))
         messages = [system_message, user_message]
         res = self.pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
                                       "prompt_builder": {"template": messages, "query": question},
@@ -119,33 +126,18 @@ class ConversationalGenaiCog(commands.Cog):
 async def setup(bot):
     await bot.add_cog(ConversationalGenaiCog(bot))
 
+
+# just for testing
 if __name__ == "__main__":
-    # just for testing
     pipeline = initialize_pipeline()
-    system_message_template = "You are a helpful AI assistant using provided supporting documents and conversation history to assist humans"
-    user_message_template = """Given the conversation history and the provided supporting documents, give a brief answer to the question.
-        Note that supporting documents are not part of the conversation. If question can't be answered from supporting documents, say so.
-
-            Conversation history:
-            {% for memory in memories %}
-                {{ memory.content }}
-            {% endfor %}
-
-            Supporting documents:
-            {% for doc in documents %}
-                {{ doc.content }}
-            {% endfor %}
-
-            \nQuestion: {{query}}
-            \nAnswer:
-        """
         
     def on_message(message):
-        question = message.content
+        question = message
+        user_name = "TestUser"  # Replace with actual user name in real scenario
         system_message = ChatMessage.from_system(system_message_template)
-        user_message = ChatMessage.from_user(user_message_template)
+        user_message = ChatMessage.from_user(user_message_template.replace("{% User %}", user_name))
         messages = [system_message, user_message]
-        res = self.pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
+        res = pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
                                       "prompt_builder": {"template": messages, "query": question},
                                       "memory_joiner": {"values": [ChatMessage.from_user(question)]}},
                                 include_outputs_from=["llm", "query_rephrase_llm"])
