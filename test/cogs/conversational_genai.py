@@ -118,3 +118,40 @@ class ConversationalGenaiCog(commands.Cog):
 
 async def setup(bot):
     await bot.add_cog(ConversationalGenaiCog(bot))
+
+if __name__ == "__main__":
+    # just for testing
+    pipeline = initialize_pipeline()
+    system_message_template = "You are a helpful AI assistant using provided supporting documents and conversation history to assist humans"
+    user_message_template = """Given the conversation history and the provided supporting documents, give a brief answer to the question.
+        Note that supporting documents are not part of the conversation. If question can't be answered from supporting documents, say so.
+
+            Conversation history:
+            {% for memory in memories %}
+                {{ memory.content }}
+            {% endfor %}
+
+            Supporting documents:
+            {% for doc in documents %}
+                {{ doc.content }}
+            {% endfor %}
+
+            \nQuestion: {{query}}
+            \nAnswer:
+        """
+        
+    def on_message(message):
+        question = message.content
+        system_message = ChatMessage.from_system(system_message_template)
+        user_message = ChatMessage.from_user(user_message_template)
+        messages = [system_message, user_message]
+        res = self.pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
+                                      "prompt_builder": {"template": messages, "query": question},
+                                      "memory_joiner": {"values": [ChatMessage.from_user(question)]}},
+                                include_outputs_from=["llm", "query_rephrase_llm"])
+        assistant_resp = res['llm']['replies'][0].content
+        print(assistant_resp)
+
+    while True:
+        message = input("Enter a message: ")
+        on_message(message)
