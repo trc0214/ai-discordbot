@@ -23,8 +23,8 @@ api_key=os.getenv("AZURE_OPENAI_API_KEY")
 api_version="2024-02-01"
 model="gpt-35-turbo-16k"
 ai_chat_channel_id = 1315186189602394183
-llm = AzureOpenAIGenerator(azure_endpoint=azure_endpoint, api_key=api_key, api_version=api_version, model=model)
-chat_llm = AzureOpenAIChatGenerator(azure_endpoint=azure_endpoint, api_key=api_key, api_version=api_version, model=model)
+llm = AzureOpenAIGenerator(azure_endpoint=azure_endpoint, api_key=api_key, azure_deployment=model)
+chat_llm = AzureOpenAIChatGenerator(azure_endpoint=azure_endpoint, api_key=api_key, azure_deployment=model)
 
 # template
 query_rephrase_template = """
