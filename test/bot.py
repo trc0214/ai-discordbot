@@ -8,7 +8,6 @@ from discord.ext import commands
 from dotenv import load_dotenv
 
 load_dotenv()
-#TOKEN = os.getenv('DISCORD_TOKEN')
 TOKEN = os.getenv("DISCORD_TOKEN_TEST")
 
 class MyBot(commands.Bot):
@@ -62,7 +61,7 @@ class MyBot(commands.Bot):
             await asyncio.sleep(60)  # Check for changes every second
 
 # Initialize the bot with the src/cogs directory
-bot = MyBot(ext_dir="./src/cogs", command_prefix="!", intents=discord.Intents.all())
+bot = MyBot(ext_dir="./test/cogs", command_prefix="!", intents=discord.Intents.all())
 
 @bot.event
 async def on_ready():
