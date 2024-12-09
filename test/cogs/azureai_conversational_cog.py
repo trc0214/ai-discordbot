@@ -9,7 +9,8 @@ from haystack_experimental.chat_message_stores.in_memory import InMemoryChatMess
 from haystack_experimental.components.retrievers import ChatMessageRetriever
 from haystack_experimental.components.writers import ChatMessageWriter
 from haystack.components.builders import ChatPromptBuilder, PromptBuilder
-from haystack_integrations.components.generators.google_ai import GoogleAIGeminiChatGenerator, GoogleAIGeminiGenerator
+from haystack.components.generators import AzureOpenAIGenerator
+from haystack.components.generators.chat import AzureOpenAIChatGenerator
 from haystack.components.converters import OutputAdapter
 from itertools import chain
 from typing import Any, List
@@ -17,10 +18,13 @@ from haystack import component
 from haystack.core.component.types import Variadic
 
 load_dotenv()
-api_key = os.getenv("GEMINI_API_KEY")
-genai_model = 'gemini-1.5-flash'
-os.environ["GOOGLE_API_KEY"] = api_key
+azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
+api_key=os.getenv("AZURE_OPENAI_API_KEY") 
+api_version="2024-02-01"
+model="gpt-35-turbo-16k"
 ai_chat_channel_id = 1315186189602394183
+llm = AzureOpenAIGenerator(azure_endpoint=azure_endpoint, api_key=api_key, api_version=api_version, model=model)
+chat_llm = AzureOpenAIChatGenerator(azure_endpoint=azure_endpoint, api_key=api_key, api_version=api_version, model=model)
 
 # template
 query_rephrase_template = """
@@ -76,11 +80,11 @@ def initialize_pipeline():
     # Initialize pipeline and add components
     pipeline = Pipeline()
     pipeline.add_component("query_rephrase_prompt_builder", PromptBuilder(query_rephrase_template))
-    pipeline.add_component("query_rephrase_llm", GoogleAIGeminiGenerator())
+    pipeline.add_component("query_rephrase_llm", llm())
     pipeline.add_component("list_to_str_adapter", OutputAdapter(template="{{ replies[0] }}", output_type=str))
     pipeline.add_component("retriever", InMemoryBM25Retriever(document_store=document_store, top_k=3))
     pipeline.add_component("prompt_builder", ChatPromptBuilder(variables=["query", "documents", "memories","user_name","current_time"], required_variables=["query", "documents", "memories", "user_name","current_time"]))
-    pipeline.add_component("llm", GoogleAIGeminiChatGenerator())
+    pipeline.add_component("llm", chat_llm())
     pipeline.add_component("memory_retriever", memory_retriever)
     pipeline.add_component("memory_writer", memory_writer)
     pipeline.add_component("memory_joiner", ListJoiner(List[ChatMessage]))
