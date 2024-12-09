@@ -20,13 +20,12 @@ load_dotenv()
 api_key = os.getenv("GEMINI_API_KEY")
 genai_model = 'gemini-1.5-flash'
 os.environ["GOOGLE_API_KEY"] = api_key
-ai_chat_channel_id = 1314151629796151307
+ai_chat_channel_id = 1315186189602394183
 
 # template
 query_rephrase_template = """
         Rewrite the question for search while keeping its meaning and key terms intact.
         If the conversation history is empty, DO NOT change the query.
-        Use conversation history only if necessary, and avoid extending the query with your own knowledge.
         If no changes are needed, output the current question as is.
 
         Conversation history:
@@ -37,8 +36,8 @@ query_rephrase_template = """
         User Query: {{query}}
         Rewritten Query:
     """
-system_message_template = "You are a helpful AI assistant using provided supporting documents and conversation history to assist humans"
-user_message_template = """Given the conversation history and the provided supporting documents, give a brief answer to the question.
+system_message_template = "You are a friendly and helpful AI assistant. Engage in a casual and informative conversation with the user."
+user_message_template = """Given the conversation history and the provided supporting documents, respond to the user's question in a friendly manner.
 
             Conversation history:
             {% for memory in memories %}
@@ -50,8 +49,10 @@ user_message_template = """Given the conversation history and the provided suppo
                 {{ doc.content }}
             {% endfor %}
 
-            \nUser: {{query}}
-            \nAnswer:
+            \nUser name: {{ user_name }}
+            \nUser message: {{query}}
+            \nCurrent time: {{ current_time }}
+            \nResponse:
         """
 
 @component
@@ -71,7 +72,6 @@ def initialize_pipeline():
     memory_writer = ChatMessageWriter(memory_store)
 
     # Define query rephrase template
-    query_rephrase_template = query_rephrase_template
     
     # Initialize pipeline and add components
     pipeline = Pipeline()
@@ -79,7 +79,7 @@ def initialize_pipeline():
     pipeline.add_component("query_rephrase_llm", GoogleAIGeminiGenerator())
     pipeline.add_component("list_to_str_adapter", OutputAdapter(template="{{ replies[0] }}", output_type=str))
     pipeline.add_component("retriever", InMemoryBM25Retriever(document_store=document_store, top_k=3))
-    pipeline.add_component("prompt_builder", ChatPromptBuilder(variables=["query", "documents", "memories"], required_variables=["query", "documents", "memories"]))
+    pipeline.add_component("prompt_builder", ChatPromptBuilder(variables=["query", "documents", "memories","user_name","current_time"], required_variables=["query", "documents", "memories", "user_name","current_time"]))
     pipeline.add_component("llm", GoogleAIGeminiChatGenerator())
     pipeline.add_component("memory_retriever", memory_retriever)
     pipeline.add_component("memory_writer", memory_writer)
@@ -114,10 +114,10 @@ class ConversationalGenaiCog(commands.Cog):
         question = message.content
         user_name = message.author.display_name
         system_message = ChatMessage.from_system(self.system_message_template)
-        user_message = ChatMessage.from_user(self.user_message_template.replace("{% User %}", user_name))
+        user_message = ChatMessage.from_user(self.user_message_template)
         messages = [system_message, user_message]
         res = self.pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
-                                      "prompt_builder": {"template": messages, "query": question},
+                                      "prompt_builder": {"template": messages,"user_name": user_name, "query": question, "current_time": message.created_at},
                                       "memory_joiner": {"values": [ChatMessage.from_user(question)]}},
                                 include_outputs_from=["llm", "query_rephrase_llm"])
         assistant_resp = res['llm']['replies'][0].content
@@ -133,12 +133,11 @@ if __name__ == "__main__":
         
     def on_message(message):
         question = message
-        user_name = "TestUser"  # Replace with actual user name in real scenario
         system_message = ChatMessage.from_system(system_message_template)
-        user_message = ChatMessage.from_user(user_message_template.replace("{% User %}", user_name))
+        user_message = ChatMessage.from_user(user_message_template)
         messages = [system_message, user_message]
         res = pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
-                                      "prompt_builder": {"template": messages, "query": question},
+                                      "prompt_builder": {"template": messages,"user_name": "tim", "query": question},
                                       "memory_joiner": {"values": [ChatMessage.from_user(question)]}},
                                 include_outputs_from=["llm", "query_rephrase_llm"])
         assistant_resp = res['llm']['replies'][0].content
