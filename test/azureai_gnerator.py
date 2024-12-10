@@ -6,10 +6,12 @@ from haystack.components.generators import AzureOpenAIGenerator
 from haystack.document_stores.in_memory import InMemoryDocumentStore
 from haystack import Document
 from dotenv import load_dotenv
+from haystack.utils import Secret
 
 load_dotenv()
 azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
 api_key = os.getenv("AZURE_OPENAI_API_KEY")
+#api_key = Secret.from_env_var("AZURE_OPENAI_API_KEY")
 model = 'gpt-35-turbo-16k'
 llm = AzureOpenAIGenerator(azure_endpoint=azure_endpoint, api_key=api_key, azure_deployment=model)
 

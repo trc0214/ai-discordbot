@@ -20,7 +20,7 @@ from haystack.utils import Secret
 
 load_dotenv()
 azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-api_key = os.getenv("AZURE_OPENAI_API_KEY")
+api_key = Secret.from_env_var("AZURE_OPENAI_API_KEY")
 chat_api_key = Secret.from_env_var("AZURE_OPENAI_API_KEY")
 model = 'gpt-35-turbo-16k'
 ai_chat_channel_id = 1315587354538545202
