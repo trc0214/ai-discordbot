@@ -105,7 +105,7 @@ def initialize_pipeline():
 
     return pipeline
 
-class ConversationalGenaiCog(commands.Cog):
+class AzureOpenAIConversationalCog(commands.Cog):
     def __init__(self, bot):
         self.bot = bot
         self.allowed_channels = [ai_chat_channel_id]
@@ -131,7 +131,7 @@ class ConversationalGenaiCog(commands.Cog):
         await message.reply(assistant_resp)
 
 async def setup(bot):
-    await bot.add_cog(ConversationalGenaiCog(bot))
+    await bot.add_cog(AzureOpenAIConversationalCog(bot))
 
 
 # just for testing
