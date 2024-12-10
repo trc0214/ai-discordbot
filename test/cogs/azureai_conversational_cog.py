@@ -16,13 +16,16 @@ from itertools import chain
 from typing import Any, List
 from haystack import component
 from haystack.core.component.types import Variadic
+from haystack.utils import Secret
 
 load_dotenv()
 azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-api_key=os.getenv("AZURE_OPENAI_API_KEY") 
-api_version="2024-02-01"
-model="gpt-35-turbo-16k"
+api_key = Secret.from_env_var("AZURE_OPENAI_API_KEY")
+api_version = "2024-02-01"
+model = "gpt-35-turbo-16k"
 ai_chat_channel_id = 1315186189602394183
+
+# Initialize the generators with the correct parameters
 llm = AzureOpenAIGenerator(azure_endpoint=azure_endpoint, api_key=api_key, azure_deployment=model)
 chat_llm = AzureOpenAIChatGenerator(azure_endpoint=azure_endpoint, api_key=api_key, azure_deployment=model)
 
@@ -80,11 +83,11 @@ def initialize_pipeline():
     # Initialize pipeline and add components
     pipeline = Pipeline()
     pipeline.add_component("query_rephrase_prompt_builder", PromptBuilder(query_rephrase_template))
-    pipeline.add_component("query_rephrase_llm", llm())
+    pipeline.add_component("query_rephrase_llm", llm)
     pipeline.add_component("list_to_str_adapter", OutputAdapter(template="{{ replies[0] }}", output_type=str))
     pipeline.add_component("retriever", InMemoryBM25Retriever(document_store=document_store, top_k=3))
     pipeline.add_component("prompt_builder", ChatPromptBuilder(variables=["query", "documents", "memories","user_name","current_time"], required_variables=["query", "documents", "memories", "user_name","current_time"]))
-    pipeline.add_component("llm", chat_llm())
+    pipeline.add_component("llm", chat_llm)
     pipeline.add_component("memory_retriever", memory_retriever)
     pipeline.add_component("memory_writer", memory_writer)
     pipeline.add_component("memory_joiner", ListJoiner(List[ChatMessage]))
@@ -141,12 +144,11 @@ if __name__ == "__main__":
         user_message = ChatMessage.from_user(user_message_template)
         messages = [system_message, user_message]
         res = pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
-                                      "prompt_builder": {"template": messages,"user_name": "tim", "query": question},
+                                      "prompt_builder": {"template": messages,"user_name": "tim", "query": question, "current_time": "2022-02-02 12:00:00"},
                                       "memory_joiner": {"values": [ChatMessage.from_user(question)]}},
                                 include_outputs_from=["llm", "query_rephrase_llm"])
         assistant_resp = res['llm']['replies'][0].content
         print(assistant_resp)
 
-    while True:
-        message = input("Enter a message: ")
-        on_message(message)
+    on_message("What is the capital of France?")
+    on_message("What is the capital of Germany?")
