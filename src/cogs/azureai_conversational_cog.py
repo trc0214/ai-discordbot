@@ -20,14 +20,14 @@ from haystack.utils import Secret
 
 load_dotenv()
 azure_endpoint = os.getenv("AZURE_OPENAI_ENDPOINT")
-api_key = Secret.from_env_var("AZURE_OPENAI_API_KEY")
-api_version = "2024-02-01"
-model = "gpt-35-turbo-16k"
-ai_chat_channel_id = 1315186189602394183
+api_key = os.getenv("AZURE_OPENAI_API_KEY")
+chat_api_key = Secret.from_env_var("AZURE_OPENAI_API_KEY")
+model = 'gpt-35-turbo-16k'
+ai_chat_channel_id = 1315587354538545202
 
 # Initialize the generators with the correct parameters
 llm = AzureOpenAIGenerator(azure_endpoint=azure_endpoint, api_key=api_key, azure_deployment=model)
-chat_llm = AzureOpenAIChatGenerator(azure_endpoint=azure_endpoint, api_key=api_key, azure_deployment=model)
+chat_llm = AzureOpenAIChatGenerator(azure_endpoint=azure_endpoint, api_key=chat_api_key, azure_deployment=model)
 
 # template
 query_rephrase_template = """
@@ -147,8 +147,7 @@ if __name__ == "__main__":
                                       "prompt_builder": {"template": messages,"user_name": "tim", "query": question, "current_time": "2022-02-02 12:00:00"},
                                       "memory_joiner": {"values": [ChatMessage.from_user(question)]}},
                                 include_outputs_from=["llm", "query_rephrase_llm"])
-        assistant_resp = res['llm']['replies'][0].content
+        assistant_resp = res.get('llm', {}).get('replies', [ChatMessage.from_system("No response")])[0].content
         print(assistant_resp)
 
-    on_message("What is the capital of France?")
-    on_message("What is the capital of Germany?")
+    on_message("where is the capital of france?")

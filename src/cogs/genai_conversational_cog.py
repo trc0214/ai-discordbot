@@ -137,7 +137,7 @@ if __name__ == "__main__":
         user_message = ChatMessage.from_user(user_message_template)
         messages = [system_message, user_message]
         res = pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
-                                      "prompt_builder": {"template": messages,"user_name": "tim", "query": question},
+                                      "prompt_builder": {"template": messages,"user_name": "tim", "query": question, "current_time": "2022-02-02 12:00:00"},
                                       "memory_joiner": {"values": [ChatMessage.from_user(question)]}},
                                 include_outputs_from=["llm", "query_rephrase_llm"])
         assistant_resp = res['llm']['replies'][0].content
