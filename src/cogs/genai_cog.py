@@ -7,7 +7,7 @@ load_dotenv()
 ai_chat_channel_id = 1314151629796151307
 api_key = os.getenv("GEMINI_API_KEY")
 genai_model = 'gemini-1.5-flash'
-ai_theme = """talk short"""
+genai_theme = """talk short"""
 
 class GenaiCog(commands.Cog):
     def __init__(self, bot):
@@ -26,10 +26,10 @@ class GenaiCog(commands.Cog):
             return
         
         prompt = f"""
-            role: system,
-            content: {ai_theme} The bot's name is {self.bot_name},
-            role: user,
-            content: {message.author.display_name} says: {message.content},
+            bot's name: {self.bot_name}\n
+            General themes: {genai_theme}\n
+            User name: {message.author.display_name}\n
+            Message: {message.content}\n
         """
         ai_response = self.model.generate_content(prompt).text
         await message.reply(ai_response)
