@@ -48,7 +48,8 @@ user_message_template = """Given the conversation history and the provided suppo
             {% for doc in documents %}
                 {{ doc.content }}
             {% endfor %}
-
+            
+            \nBot name: {{ bot_name }}
             \nUser name: {{ user_name }}
             \nUser message: {{query}}
             \nCurrent time: {{ current_time }}
@@ -79,7 +80,7 @@ def initialize_pipeline():
     pipeline.add_component("query_rephrase_llm", GoogleAIGeminiGenerator())
     pipeline.add_component("list_to_str_adapter", OutputAdapter(template="{{ replies[0] }}", output_type=str))
     pipeline.add_component("retriever", InMemoryBM25Retriever(document_store=document_store, top_k=3))
-    pipeline.add_component("prompt_builder", ChatPromptBuilder(variables=["query", "documents", "memories","user_name","current_time"], required_variables=["query", "documents", "memories", "user_name","current_time"]))
+    pipeline.add_component("prompt_builder", ChatPromptBuilder(variables=["query", "documents", "memories","user_name","current_time","bot_name"], required_variables=["query", "documents", "memories", "user_name","current_time","bot_name"]))
     pipeline.add_component("llm", GoogleAIGeminiChatGenerator())
     pipeline.add_component("memory_retriever", memory_retriever)
     pipeline.add_component("memory_writer", memory_writer)
@@ -112,12 +113,13 @@ class GenaiConversationalCog(commands.Cog):
             return
 
         question = message.content
+        bot_name = self.bot.user.name
         user_name = message.author.display_name
         system_message = ChatMessage.from_system(self.system_message_template)
         user_message = ChatMessage.from_user(self.user_message_template)
         messages = [system_message, user_message]
         res = self.pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
-                                      "prompt_builder": {"template": messages,"user_name": user_name, "query": question, "current_time": message.created_at},
+                                      "prompt_builder": {"template": messages,"user_name": user_name, "query": question, "current_time": message.created_at, "bot_name": bot_name},
                                       "memory_joiner": {"values": [ChatMessage.from_user(question)]}},
                                 include_outputs_from=["llm", "query_rephrase_llm"])
         assistant_resp = res['llm']['replies'][0].content
@@ -137,7 +139,7 @@ if __name__ == "__main__":
         user_message = ChatMessage.from_user(user_message_template)
         messages = [system_message, user_message]
         res = pipeline.run(data={"query_rephrase_prompt_builder": {"query": question},
-                                      "prompt_builder": {"template": messages,"user_name": "tim", "query": question, "current_time": "2022-02-02 12:00:00"},
+                                      "prompt_builder": {"template": messages,"user_name": "tim", "query": question, "current_time": "2022-02-02 12:00:00","bot_name": "plump duck"},
                                       "memory_joiner": {"values": [ChatMessage.from_user(question)]}},
                                 include_outputs_from=["llm", "query_rephrase_llm"])
         assistant_resp = res['llm']['replies'][0].content
