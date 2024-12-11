@@ -6,6 +6,7 @@ WORKDIR /app
 
 # Copy only the necessary files into the container
 COPY requirements.txt ./
+COPY .env ./
 
 # Create a virtual environment and install any needed packages specified in requirements.txt
 RUN python -m venv /opt/venv && \
