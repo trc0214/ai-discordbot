@@ -5,7 +5,8 @@ from haystack.components.generators import OpenAIGenerator
 from haystack.components.builders.prompt_builder import PromptBuilder
 from haystack.components.embedders import SentenceTransformersDocumentEmbedder, SentenceTransformersTextEmbedder
 from haystack_integrations.document_stores.mongodb_atlas import MongoDBAtlasDocumentStore
-from haystack_integrations.components.embedders.mongodb_atlas import MongoDBAtlasEmbeddingRetriever
+from haystack_integrations.components.retrievers.mongodb_atlas import MongoDBAtlasEmbeddingRetriever
+from haystack.utils import Secret
 
 # Create some example documents
 documents = [
@@ -15,7 +16,10 @@ documents = [
 ]
 
 # We support many different databases. Here we load a simple and lightweight in-memory document store.
-document_store = MongoDBAtlasDocumentStore()
+document_store = MongoDBAtlasDocumentStore(
+    mongo_connection_string=Secret.from_env_var("MONGODB_CONNECTION_STRING"),
+    database="test",
+)
 
 # Define some more components
 doc_writer = DocumentWriter(document_store=document_store, policy=DuplicatePolicy.SKIP)

@@ -33,7 +33,7 @@ dependencies = [
   "haystack-ai==2.8.0",
   "google-ai-haystack==3.0.2",
   "datasets==3.1.0",
-  "mongodb-atlas-haystack",
+  "mongodb-atlas-haystack==1.0.0",
 ]
 [tool.hatch.envs.test]
 extra-dependencies = [
